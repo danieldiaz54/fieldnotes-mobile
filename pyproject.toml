@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fieldnotes-mobile"
+version = "1.0.0"
+description = "Local-First, Offline-First Mobile Field Inspection Sync Engine with SQLite Transactional Outbox, Lamport Logical Clocks, and Deterministic Conflict Resolution"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+  { name = "Daniel" }
+]
+dependencies = []
+
+[project.optional-dependencies]
+asgi = [
+  "fastapi>=0.115.0",
+  "uvicorn>=0.32.0",
+]
+dev = [
+  "ruff>=0.8.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100

@@ -1,0 +1,2 @@
+# Core runtime uses 100% Python 3.12 standard library (sqlite3, http.server, unittest) with zero external dependencies required.
+# Optional ASGI dependencies can be installed via `pip install .[asgi]`.

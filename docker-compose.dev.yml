@@ -1,15 +1,38 @@
 services:
+  fieldnotes-postgres-dev:
+    image: postgres:16-alpine
+    container_name: fieldnotes-postgres-dev
+    ports:
+      - "5442:5432"
+    environment:
+      POSTGRES_USER: fieldnotes_dev
+      POSTGRES_PASSWORD: fieldnotes_dev_local
+      POSTGRES_DB: fieldnotes_sync_dev
+    volumes:
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fieldnotes_dev -d fieldnotes_sync_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   fieldnotes-mobile-dev:
-    image: node:22-alpine
+    image: python:3.12-slim
     container_name: fieldnotes-mobile-dev
     working_dir: /app
     volumes:
       - .:/app
     ports:
-      - "3001:3000"
+      - "8097:8097"
     env_file:
       - path: .env.development
         required: false
     environment:
-      - NODE_ENV=development
-    command: sh -c "npm install && npm run dev"
+      - FIELDNOTES_ENV=development
+      - FIELDNOTES_PORT=8097
+      - LOCAL_SQLITE_PATH=/app/.data/fieldnotes_device_dev.sqlite3
+      - POSTGRES_URL=postgresql://fieldnotes_dev:fieldnotes_dev_local@fieldnotes-postgres-dev:5432/fieldnotes_sync_dev
+    depends_on:
+      fieldnotes-postgres-dev:
+        condition: service_healthy
+    command: python -m src.main
