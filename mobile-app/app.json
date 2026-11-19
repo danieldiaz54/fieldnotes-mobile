@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "FieldNotes Mobile",
+    "slug": "fieldnotes-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "scheme": "fieldnotes",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "dev.portfolio.fieldnotes.mobile",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "FieldNotes Mobile tags offline field inspection reports with WGS84 GPS coordinates."
+      }
+    },
+    "android": {
+      "package": "dev.portfolio.fieldnotes.mobile",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_NETWORK_STATE"
+      ]
+    },
+    "plugins": [
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "FieldNotes Mobile tags offline field inspection reports with WGS84 GPS coordinates."
+        }
+      ]
+    ],
+    "extra": {
+      "syncApiBaseUrl": "http://127.0.0.1:8097",
+      "defaultDeviceId": "device-ios-field-01"
+    }
+  }
+}

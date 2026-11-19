@@ -1,3 +1,34 @@
+# Python bytecode & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+
+# React Native / Expo / Node
+mobile-app/node_modules/
+mobile-app/.expo/
+mobile-app/dist/
+
+# Local SQLite databases & data folders
+.data/
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite3*
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
 
 # Local private documentation (docs-oracle Zero Remote Exposure)
 /Docs/*
@@ -5,9 +36,12 @@
 !/docs/adr/
 !/docs/adr/**
 
-# Environment isolation files
-.env.development
-.env.production
-
 # Hook runner fallback mirror
 .agents/.agents/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/

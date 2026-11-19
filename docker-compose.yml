@@ -1,0 +1,35 @@
+services:
+  fieldnotes-postgres:
+    image: postgres:16-alpine
+    container_name: fieldnotes-postgres
+    ports:
+      - "5442:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-fieldnotes_dev}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fieldnotes_dev_local}
+      POSTGRES_DB: ${POSTGRES_DB:-fieldnotes_sync_dev}
+    volumes:
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fieldnotes_dev} -d ${POSTGRES_DB:-fieldnotes_sync_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  fieldnotes-mobile:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fieldnotes-mobile
+    ports:
+      - "8097:8097"
+    environment:
+      FIELDNOTES_ENV: development
+      FIELDNOTES_HOST: 0.0.0.0
+      FIELDNOTES_PORT: 8097
+      LOCAL_SQLITE_PATH: /app/.data/fieldnotes_device_dev.sqlite3
+      REMOTE_SQLITE_PATH: /app/.data/fieldnotes_remote_dev.sqlite3
+      POSTGRES_URL: postgresql://fieldnotes_dev:fieldnotes_dev_local@fieldnotes-postgres:5432/fieldnotes_sync_dev
+    depends_on:
+      fieldnotes-postgres:
+        condition: service_healthy

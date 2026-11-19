@@ -1,0 +1,109 @@
+name: FieldNotes Mobile Offline-First Sync CI
+
+on:
+  push:
+    branches: ["dev", "main", "feat/**", "fix/**", "sdd/**"]
+  pull_request:
+    branches: ["dev", "main"]
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-verify:
+    name: Python 3.12 Purity, Unit, Persistence & HTTP Sync Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Syntax & Bytecode Compilation Check
+        run: python -m compileall -q src tests
+
+      - name: Domain Purity Verification (Zero External Imports in src/domain)
+        run: |
+          python -c "
+          import ast, pathlib, sys
+          allowed = {
+              '__future__',
+              'collections',
+              'collections.abc',
+              'dataclasses',
+              'datetime',
+              'enum',
+              'math',
+              'threading',
+              'typing',
+          }
+          for path in pathlib.Path('src/domain').glob('*.py'):
+              tree = ast.parse(path.read_text(encoding='utf-8'))
+              for node in ast.walk(tree):
+                  if isinstance(node, ast.Import):
+                      for alias in node.names:
+                          if alias.name not in allowed and not alias.name.startswith('src.domain'):
+                              sys.exit(f'Disallowed import {alias.name} in {path}')
+                  elif isinstance(node, ast.ImportFrom) and node.module:
+                      if node.module not in allowed and not node.module.startswith('src.domain'):
+                          sys.exit(f'Disallowed from-import {node.module} in {path}')
+          print('Domain purity verified.')
+          "
+
+      - name: Run Unit, Persistence & Integration Test Suite
+        run: python -m unittest discover -s tests -v
+
+      - name: End-to-End Offline Sync & Conflict Resolution Smoke Gate
+        run: |
+          python -c "
+          from src.application.services import FieldNotesApplicationService
+          from src.domain.exceptions import OfflineNetworkError
+
+          svc = FieldNotesApplicationService(auto_seed=True)
+          svc.set_connectivity(False)
+          svc.upsert_local_note({
+              'note_id': 'NOTE-SITE-001',
+              'title': 'Offline Thermal Reading 98.4 C',
+              'body': 'Local field edit recorded while offline.',
+          })
+          try:
+              svc.run_delta_sync()
+              raise AssertionError('Expected OfflineNetworkError while offline')
+          except OfflineNetworkError:
+              pass
+
+          svc.simulate_remote_edit('NOTE-SITE-001', {
+              'title': 'Remote Dispatch Update',
+              'body': 'Concurrent edit made by dispatch operator.',
+          })
+          svc.set_connectivity(True)
+          sync_res = svc.run_delta_sync()
+          assert sync_res['conflicts_detected'] == 1
+          conflict_id = sync_res['conflicts'][0]['conflict_id']
+          resolved = svc.resolve_conflict(conflict_id, {
+              'strategy': 'MANUAL_MERGE',
+              'merged_title': 'Merged Thermal Reading + Dispatch Order',
+              'merged_body': 'Combined field reading and dispatch intervention.',
+          })
+          assert resolved['resolved_note']['sync_state'] == 'SYNCED'
+          assert svc.get_health()['unresolved_conflicts_count'] == 0
+          print('Offline-first sync smoke gate passed cleanly.')
+          "
+
+      - name: Validate Mobile Expo Blueprint Configs & Strict TypeScript Guard
+        run: |
+          python -c "
+          import json, pathlib, re, sys
+          for cfg in ['mobile-app/package.json', 'mobile-app/tsconfig.json', 'mobile-app/app.json']:
+              json.loads(pathlib.Path(cfg).read_text(encoding='utf-8'))
+          tsconfig = json.loads(pathlib.Path('mobile-app/tsconfig.json').read_text(encoding='utf-8'))
+          assert tsconfig['compilerOptions']['strict'] is True
+          for ts_file in pathlib.Path('mobile-app/src').rglob('*.ts*'):
+              text = ts_file.read_text(encoding='utf-8')
+              if re.search(r':\s*any\b|\bas\s+any\b|<any>', text):
+                  sys.exit(f'Forbidden any type detected in {ts_file}')
+          print('Mobile Expo blueprint validation passed.')
+          "
